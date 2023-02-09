@@ -1,0 +1,2555 @@
+openapi: 3.0.0
+info:
+  description: 'Access token should be sent along with every request to SITE_NAME API in authorization header: `Authorization: Bearer <Token>` <br> This token can either be acquired via `auth/login` endpoint or from account settings page on [SITE_NAME website](SITE_URL/account/settings).'
+  version: '1.0.0'
+  title: SITE_NAME API
+security:
+  - accessToken: []
+tags:
+  - name: Clicks Report
+  - name: Links
+  - name: Biolinks
+  - name: Link Groups
+  - name: Link Overlays
+  - name: Tracking Pixels
+  - name: Link Pages
+  - name: Auth
+    description: Authenticate requests to the API
+paths:
+  /link:
+    post:
+      tags:
+        - Links
+      summary: Shorten a link
+      operationId: createLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/CrupdateLinkPayload'
+                - type: object
+                  properties:
+                    long_url:
+                      type: string
+                      example: https://google.com
+                      description: Url to shorten
+      responses:
+        '200':
+          description: On success, the response body contains the created link object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  link:
+                    $ref: '#/components/schemas/Link'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+    get:
+      tags:
+        - Links
+      summary: List all of your links
+      operationId: getAllLinks
+      parameters:
+        - name: perPage
+          in: query
+          description: How many links to return per page
+          schema:
+            type: 'integer'
+            default: 20
+        - name: page
+          in: query
+          description: Which page to return
+          schema:
+            type: 'integer'
+            default: 1
+      responses:
+        '200':
+          description: Response body contains a paginated list of links in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  pagination:
+                    allOf:
+                      - $ref: '#/components/schemas/Pagination'
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Link'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+  /link/batch/shorten:
+    post:
+      tags:
+        - Links
+      summary: Shorten multiple links
+      operationId: createLinkBatch
+      requestBody:
+        required: true
+        description: Request body should contain up to 10 urls to shorten as well as any options that should be attached to all links.
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/CrupdateLinkPayload'
+                - type: object
+                  properties:
+                    long_urls:
+                      type: array
+                      items:
+                        type: string
+                        example: https://twitter.com
+      responses:
+        '200':
+          description: On success, the response body contains an array of created link objects in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  links:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Link'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+  /link/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the link
+        example: 1
+    get:
+      tags:
+        - Links
+      summary: Get specified link details
+      operationId: getLink
+      responses:
+        '200':
+          description: Response body contains a link object in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  link:
+                    $ref: '#/components/schemas/Link'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+    put:
+      tags:
+        - Links
+      summary: Update specified link details
+      operationId: updateLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateLinkPayload'
+      responses:
+        '200':
+          description: On success, the response body contains the updated link object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  link:
+                    $ref: '#/components/schemas/Link'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+  /link/{ids}:
+    parameters:
+      - in: path
+        name: ids
+        required: true
+        description: Comma separated list of link IDs
+        schema:
+          type: string
+          example: 1,2,3
+    delete:
+      tags:
+        - Links
+      summary: Delete links
+      operationId: deleteLink
+      responses:
+        '200':
+          description: Links have been deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+  /link/csv/export:
+    post:
+      tags:
+        - Links
+      summary: Export your links in CSV format.
+      operationId: linksCsvExport
+      responses:
+        '200':
+          description: If status is "success", download link will be returned. If status is "jobQueued", you will receive an email with download link after csv file is generated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                      - jobQueued
+                    example: success
+                  downloadPath:
+                    type: string
+                    example: SITE_URL/secure/csv/download/5445
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+
+  /reports/clicks:
+    get:
+      tags:
+        - Clicks Report
+      summary: Get clicks report for user, workspace, link, biolink, link group or all clicks
+      operationId: getClicksReport
+      parameters:
+        - name: model
+          in: query
+          description: "To what model should report be scoped. Available models are: user, link, biolink, workspace, linkGroup. It should be formatted as model name = id, for example: link=22, will default to showing all clicks for current user."
+          schema:
+            type: string
+            nullable: true
+            example: link=1
+        - name: metrics
+          in: query
+          style: form
+          explode: true
+          description: "Command separated list of metrics to return in the report. Available metrics: clicks, devices, browsers, platforms, referrers, locations."
+          schema:
+            type: string
+            nullable: true
+            example: "platforms, clicks, devices"
+        - name: startDate
+          in: query
+          description: Starting date for for the report. Will default to start of current week.
+          schema:
+            type: string
+            nullable: true
+            example: 2022-12-03T22:00:00.000Z
+        - name: endDate
+          in: query
+          description: End date for for the report. Will default to end of current week.
+          schema:
+            type: string
+            nullable: true
+            example: 2022-12-03T22:00:00.000Z
+      responses:
+        '200':
+          description: Response body contains report in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  report:
+                    $ref: '#/components/schemas/ClicksReport'
+
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+
+  /biolink:
+    post:
+      tags:
+        - Biolinks
+      summary: Create a new biolink
+      operationId: createBiolink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateBiolinkPayload'
+      responses:
+        '200':
+          description: On success, the response body contains the created biolink object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  biolink:
+                    $ref: '#/components/schemas/Biolink'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+    get:
+      tags:
+        - Biolinks
+      summary: List all of your biolinks
+      operationId: getAllBiolinks
+      parameters:
+        - name: perPage
+          in: query
+          description: How many biolinks to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Which page to return
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Response body contains a paginated list of link biolinks in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  pagination:
+                    allOf:
+                      - $ref: '#/components/schemas/Pagination'
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Biolink'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+  /biolink/{id}/content-item/detach:
+    parameters:
+      - name: id
+        in: path
+        description: ID for the biolink.
+        schema:
+          type: integer
+          default: 1
+    post:
+      tags:
+        - Biolinks
+      summary: Detach link or widget with specified ID from biolink.
+      operationId: detachFromBiolink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contentItem:
+                  required: [id, model_type, position]
+                  type: object
+                  properties:
+                    id:
+                      description: Link or widget ID
+                      type: integer
+                      example: 1
+                    model_type:
+                      description: Item type
+                      type: string
+                      enum:
+                        - link
+                        - widget
+                    position:
+                      description: Current position of the item in biolink
+                      type: integer
+                      example: 5
+      responses:
+        '200':
+          description: Response body contains a status of "success" if item was detached.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '404':
+          $ref: '#/components/schemas/404-Response'
+  /biolink/{id}/widget:
+    parameters:
+      - name: id
+        in: path
+        description: Biolink ID.
+        schema:
+          type: integer
+          default: 1
+    post:
+      tags:
+        - Biolinks
+      summary: Add a new widget to biolink
+      operationId: addWidgetToBiolink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateBiolinkWidgetPayload'
+      responses:
+        '200':
+          description: On success, the response body contains the created widget object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  biolink:
+                    $ref: '#/components/schemas/BiolinkWidget'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '404':
+          $ref: '#/components/schemas/404-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+  /biolink/{biolinkId}/widget/{widgetId}:
+    parameters:
+      - name: biolinkId
+        in: path
+        description: Biolink ID.
+        schema:
+          type: integer
+          default: 1
+      - name: widgetId
+        in: path
+        description: Widget ID.
+        schema:
+          type: integer
+          default: 1
+    put:
+      tags:
+        - Biolinks
+      summary: Update specified biolink widget
+      operationId: updateBiolinkWidget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateBiolinkWidgetPayload'
+      responses:
+        '200':
+          description: On success, the response body contains the updated widget object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  biolink:
+                    $ref: '#/components/schemas/BiolinkWidget'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '404':
+          $ref: '#/components/schemas/404-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+  /biolink/{biolinkId}/widget/{widgetIds}:
+    parameters:
+      - name: biolinkId
+        in: path
+        description: Biolink ID.
+        schema:
+          type: integer
+          example: 1
+      - name: widgetIds
+        in: path
+        description: Comma separated list of widget IDs.
+        schema:
+          type: string
+          example: 1,2,3
+    delete:
+      tags:
+        - Biolinks
+      summary: Delete speciefied biolink widgets
+      operationId: deleteBiolinkWidgets
+      responses:
+        '200':
+          description: On success, the response body contains a sucess message.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '404':
+          $ref: '#/components/schemas/404-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+
+  /biolink/{id}/content-item:
+    parameters:
+      - name: id
+        in: path
+        description: Biolink ID.
+        schema:
+          type: integer
+          example: 1
+    put:
+      tags:
+        - Biolinks
+      summary: Update configuration for specified biolink content item
+      operationId: updateBiolinkContentConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateBiolinkContentPayload'
+      responses:
+        '200':
+          description: The response body contains a success message.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '404':
+          $ref: '#/components/schemas/404-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+  /biolink/{id}/change-order:
+    parameters:
+      - name: id
+        in: path
+        description: Biolink ID.
+        schema:
+          type: integer
+          example: 1
+    post:
+      tags:
+        - Biolinks
+      summary: Change position of specified biolink content item
+      operationId: updateBiolinkContentPosition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  type: object
+                  properties:
+                    position:
+                      type: integer
+                      description: Position for link or widget
+                      example: 10
+                    id:
+                      type: integer
+                      description: Link or widget ID
+                      example: 1
+                    model_type:
+                      description: Item type
+                      type: string
+                      enum:
+                        - link
+                        - widget
+      responses:
+        '200':
+          description: The response body contains a success message.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '404':
+          $ref: '#/components/schemas/404-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+  /biolink/{id}/appearance:
+    parameters:
+      - name: id
+        in: path
+        description: Biolink ID.
+        schema:
+          type: integer
+          example: 1
+    post:
+      tags:
+        - Biolinks
+      summary: Update specified biolink's appearance
+      operationId: updateBiolinkAppearance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                config:
+                  type: object
+      responses:
+        '200':
+          description: On success, the response body contains current biolink appearance configuration.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '404':
+          $ref: '#/components/schemas/404-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+
+  /link-group:
+    post:
+      tags:
+        - Link Groups
+      summary: Create a new link group
+      operationId: createGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateLinkGroupPayload'
+      responses:
+        '200':
+          description: On success, the response body contains the created link group object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  group:
+                    $ref: '#/components/schemas/LinkGroup'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+    get:
+      tags:
+        - Link Groups
+      summary: List all of your link groups
+      operationId: getAllLinkGroups
+      parameters:
+        - name: perPage
+          in: query
+          description: How many groups to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Which page to return
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Response body contains a paginated list of link groups in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  pagination:
+                    allOf:
+                      - $ref: '#/components/schemas/Pagination'
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/LinkGroup'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+  /link-group/{id}/links:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the link group
+        example: 1
+    get:
+      tags:
+        - Link Groups
+      summary: List all links that are attached to specified group.
+      operationId: getAllGroupLinks
+      parameters:
+        - name: perPage
+          in: query
+          description: How many links to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Which page to return
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Response body contains a paginated list of links that are contained in specified group in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  linkGroup:
+                    $ref: '#/components/schemas/LinkGroup'
+                  pagination:
+                    allOf:
+                      - $ref: '#/components/schemas/Pagination'
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Link'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+  /link-group/{id}/attach:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the link group
+        example: 1
+    post:
+      tags:
+        - Link Groups
+      summary: Attach links with specified IDs to the group
+      operationId: attachLinksToGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [linkIds]
+              properties:
+                linkIds:
+                  minimum: 1
+                  description: List of link ids to attach to this group.
+                  type: array
+                  items:
+                    type: integer
+                    example: 1
+      responses:
+        '200':
+          description: Response body contains a status of "success" if links were attached.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+  /link-group/{id}/detach:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the link group
+        example: 1
+    post:
+      tags:
+        - Link Groups
+      summary: Detach links with specified IDs from the group
+      operationId: detachLinksToGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [linkIds]
+              properties:
+                linkIds:
+                  minimum: 1
+                  description: List of link ids to detatch from this group.
+                  type: array
+                  items:
+                    type: integer
+                    example: 1
+      responses:
+        '200':
+          description: Response body contains a status of "success" if links were detached.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+  /link-group/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the link group
+        example: 1
+    get:
+      tags:
+        - Link Groups
+      summary: Get specified link group details
+      operationId: getGroup
+      responses:
+        '200':
+          description: Response body contains a link group object in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  link:
+                    $ref: '#/components/schemas/LinkGroup'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+    put:
+      tags:
+        - Link Groups
+      summary: Update specified link group details
+      operationId: updateGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateLinkGroupPayload'
+      responses:
+        '200':
+          description: On success, the response body contains the updated link group object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  group:
+                    $ref: '#/components/schemas/LinkGroup'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+  /link-group/{ids}:
+    parameters:
+      - in: path
+        name: ids
+        required: true
+        description: Comma separated list of group IDs
+        schema:
+          type: string
+          example: 1,2,3
+    delete:
+      tags:
+        - Link Groups
+      summary: Delete Link Groups
+      operationId: deleteLinkGroups
+      responses:
+        '200':
+          description: Link groups have been deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+
+  /link-overlay:
+    post:
+      tags:
+        - Link Overlays
+      summary: Create a new link overlay
+      operationId: createOverlay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateLinkOverlayPayload'
+      responses:
+        '200':
+          description: On success, the response body contains the created link overlay object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  linkOverlay:
+                    $ref: '#/components/schemas/LinkOverlay'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+    get:
+      tags:
+        - Link Overlays
+      summary: List all of your link overlays
+      operationId: getAllLinkOverlays
+      parameters:
+        - name: perPage
+          in: query
+          description: How many overlays to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Which page to return
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Response body contains a paginated list of link overlays in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  pagination:
+                    allOf:
+                      - $ref: '#/components/schemas/Pagination'
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/LinkOverlay'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+  /link-overlay/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the link overlay
+        example: 1
+    get:
+      tags:
+        - Link Overlays
+      summary: Get specified link overlay details
+      operationId: getOverlay
+      responses:
+        '200':
+          description: Response body contains a link overlay object in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  link:
+                    $ref: '#/components/schemas/LinkOverlay'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+    put:
+      tags:
+        - Link Overlays
+      summary: Update specified link overlay details
+      operationId: updateOverlay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateLinkOverlayPayload'
+      responses:
+        '200':
+          description: On success, the response body contains the updated link overlay object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  linkOverlay:
+                    $ref: '#/components/schemas/LinkOverlay'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+  /link-overlay/{ids}:
+    parameters:
+      - in: path
+        name: ids
+        required: true
+        description: Comma separated list of overlay IDs
+        schema:
+          type: string
+          example: 1,2,3
+    delete:
+      tags:
+        - Link Overlays
+      summary: Delete Link Overlays
+      operationId: deleteLinkOverlays
+      responses:
+        '200':
+          description: Link overlays have been deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+
+  /tracking-pixel:
+    post:
+      tags:
+        - Tracking Pixels
+      summary: Create a new tracking pixel
+      operationId: createTrackingPixel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateTrackingPixelPayload'
+      responses:
+        '200':
+          description: On success, the response body contains the created tracking pixel object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  pixel:
+                    $ref: '#/components/schemas/TrackingPixel'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+    get:
+      tags:
+        - Tracking Pixels
+      summary: List all of your tracking pixels
+      operationId: getAllTrackingPixels
+      parameters:
+        - name: perPage
+          in: query
+          description: How many pixels to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Which page to return
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Response body contains a paginated list of tracking pixels in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  pagination:
+                    allOf:
+                      - $ref: '#/components/schemas/Pagination'
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/TrackingPixel'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+  /tracking-pixel/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the tracking pixel
+        example: 1
+    get:
+      tags:
+        - Tracking Pixels
+      summary: Get specified tracking pixel details
+      operationId: getTrackingPixel
+      responses:
+        '200':
+          description: Response body contains a tracking pixel object in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  pixel:
+                    $ref: '#/components/schemas/TrackingPixel'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+    put:
+      tags:
+        - Tracking Pixels
+      summary: Update specified tracking pixel details
+      operationId: updateTrackingPixel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateTrackingPixelPayload'
+      responses:
+        '200':
+          description: On success, the response body contains the updated tracking pixel object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  pixel:
+                    $ref: '#/components/schemas/TrackingPixel'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+  /tracking-pixel/{ids}:
+    parameters:
+      - in: path
+        name: ids
+        required: true
+        description: Comma separated list of pixel IDs
+        schema:
+          type: string
+          example: 1,2,3
+    delete:
+      tags:
+        - Tracking Pixels
+      summary: Delete Tracking Pixels
+      operationId: deleteTrackingPixels
+      responses:
+        '200':
+          description: Tracking pixels have been deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+
+  /link-page:
+    post:
+      tags:
+        - Link Pages
+      summary: Create a new link page
+      operationId: createLinkPage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateLinkPagePayload'
+      responses:
+        '200':
+          description: On success, the response body contains the created link page object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  page:
+                    $ref: '#/components/schemas/LinkPage'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+    get:
+      tags:
+        - Link Pages
+      summary: List all of your link pages
+      operationId: getAllLinkPages
+      parameters:
+        - name: perPage
+          in: query
+          description: How many link pages to return per page
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          description: Which page to return
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Response body contains a paginated list of link pages in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  pagination:
+                    allOf:
+                      - $ref: '#/components/schemas/Pagination'
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/LinkPage'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+  /link-page/{id}:
+    parameters:
+      - name: id
+        in: path
+        description: ID of the link page
+        example: 1
+    get:
+      tags:
+        - Link Pages
+      summary: Get specified link page details
+      operationId: getLinkPage
+      responses:
+        '200':
+          description: Response body contains a link page object in JSON format.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  page:
+                    $ref: '#/components/schemas/LinkPage'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+    put:
+      tags:
+        - Link Pages
+      summary: Update specified link page details
+      operationId: updateLinkPage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrupdateLinkPagePayload'
+      responses:
+        '200':
+          description: On success, the response body contains the updated link page object in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  page:
+                    $ref: '#/components/schemas/LinkPage'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+  /link-page/{ids}:
+    parameters:
+      - in: path
+        name: ids
+        required: true
+        description: Comma separated list of link page IDs
+        schema:
+          type: string
+          example: 1,2,3
+    delete:
+      tags:
+        - Link Pages
+      summary: Delete Link Pages
+      operationId: deleteLinkPages
+      responses:
+        '200':
+          description: Link pages have been deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+
+  /auth/register:
+    post:
+      security: []
+      tags:
+        - Auth
+      summary: Register for a new account
+      operationId: register
+      responses:
+        '200':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: 'example@gmail.com'
+                password:
+                  type: string
+                  example: password
+                device_name:
+                  type: string
+                  example: 'iphone 12'
+  /auth/login:
+    post:
+      security: []
+      tags:
+        - Auth
+      summary: Get access token
+      description: 'Logs in specified user and returns user object along with access token. <br><br> Access Token is a string that enables SITE_NAME to verify that a request belongs to an authorized session. This token should be sent along with every request to SITE_NAME API in a authorization header: `Authorization: Bearer <Token>`.'
+      operationId: login
+      responses:
+        '200':
+          description: Operation successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/schemas/401-Response'
+        '403':
+          $ref: '#/components/schemas/403-Response'
+        '422':
+          description: Invalid data specified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/422-Response'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: 'example@gmail.com'
+                password:
+                  type: string
+                  example: 'password'
+                device_name:
+                  type: string
+                  example: 'iphone 12'
+components:
+  schemas:
+    Pagination:
+      type: object
+      properties:
+        current_page:
+          type: integer
+          format: int64
+          example: 1
+        from:
+          type: integer
+          format: int64
+          example: 1
+        to:
+          type: integer
+          format: int64
+          example: 100
+        per_page:
+          type: integer
+          format: int64
+          example: 25
+        last_page:
+          type: integer
+          format: int64
+          example: 156
+        total:
+          type: integer
+          format: int64
+          example: 264
+
+    Link:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        title:
+          type: string
+          example: 'reddit: the front page of the internet'
+          description: Title for link. Either manually entered or extracted from destination url meta tags.
+        hash:
+          type: string
+          example: rF7r6
+          description: Randomly generated short ID for the link
+        alias:
+          type: string
+          example: red
+          description: Manually entered short ID for the link (if was entered)
+        long_url:
+          type: string
+          example: https://reddit.com
+          description: Orignal url that was shortened
+        short_url:
+          type: string
+          example: SITE_URL/rF7r6
+          description: Full short url for link. Includes protocol, domain and hash/alias
+        disabled:
+          type: boolean
+          example: false
+          description: Whether link is enabled or not. Disabled links will show a not found page instead of redirecting to the destination url.
+        expires_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Expiration date for the link. After this date not found page will be shown instead of redirecting to destination url.
+        description:
+          type: string
+          example: "Reddit is a network of communities based on people's interests. Find communities you're interested in, and become part of an online community!"
+          description: Description for link. Either manually entered or extracted from destination url meta tags.
+        type:
+          type: string
+          example: direct
+          description: Link redirection type. Direct, frame, overlay, splash, or page.
+        created_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Date link was created at.
+        updated_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Date link was last updated.
+        clicked_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Date link was last clicked / visited.
+        deleted_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Date link was moved to trash (if link is trashed currently)
+        image:
+          type: string
+          example: https://www.redditstatic.com/icon.png
+          description: Url to the image for the link. Either manually entered/uploaded or extracted from destination url meta tags.
+        clicks_count:
+          type: number
+          example: 854
+          description: Total number of clicks/visists for the link.
+        expiration_clicks:
+          type: number
+          example: 10
+          description: After how many clicks/visits will the link expire.
+        utm:
+          type: string
+          example: 'utm_source=google&utm_medium=banner'
+          description: UTM tags added to link via utm builder.
+        has_password:
+          type: boolean
+          default: false
+          description: Whether link is password protected
+        rules:
+          nullable: true
+          type: array
+          description: Rules attached to the link.
+          items:
+            $ref: '#/components/schemas/LinkRule'
+        tags:
+          nullable: true
+          type: array
+          description: Tags attached to the link.
+          items:
+            $ref: '#/components/schemas/Tag'
+        pixels:
+          nullable: true
+          type: array
+          description: Tracking pixels attached to the link.
+          items:
+            $ref: '#/components/schemas/TrackingPixel'
+        groups:
+          nullable: true
+          type: array
+          description: Groups this link is attached to.
+          items:
+            $ref: '#/components/schemas/LinkGroup'
+    CrupdateLinkPayload:
+      type: object
+      properties:
+        alias:
+          type: string
+          nullable: true
+          example: short
+          description: Custom short ID for the link
+        type:
+          type: string
+          nullable: true
+          default: direct
+          description: Link redirection type. Direct, frame, overlay, splash, or page.
+        password:
+          type: string
+          nullable: true
+          default: null
+          description: New password, if link should be password protected.
+        active:
+          type: boolean
+          nullable: true
+          default: true
+          description: Whether link should be disabled or not.
+        expires_at:
+          type: string
+          nullable: true
+          example: '2022-05-06'
+          description: 'Format: "Y-m-d H:i:s" or "Y-m-d". Expiration date for the link. After this date not found page will be shown instead of redirecting to destination url.'
+        activates_at:
+          type: string
+          nullable: true
+          example: '2022-05-06'
+          description: 'Format: "Y-m-d H:i:s" or "Y-m-d". Activation date for the link. Link will only become accessible after this date.'
+        utm:
+          type: string
+          nullable: true
+          example: 'utm_source=google&utm_medium=banner'
+          description: UTM query string that should be attached to link.
+        domain_id:
+          type: number
+          nullable: true
+          default: null
+          description: ID of the domain link should be accessible at. Null for all domains, 0 for main site domain only.
+        title:
+          type: string
+          nullable: true
+          example: Google
+          description: Ttitle for the link. If empty, it will be extracted from destination url meta tags.
+        description:
+          type: string
+          nullable: true
+          example: Search Engine
+          description: Description for the link. If empty, it will be extracted from destination url meta tags.
+        pixels:
+          type: array
+          nullable: true
+          items:
+            type: integer
+            example: 495
+          description: Array of pixel IDs that should be attached to this link.
+        groups:
+          type: array
+          nullable: true
+          items:
+            type: integer
+            example: 54
+          description: Array of group IDs that this link should be attached to.
+        rules:
+          nullable: true
+          type: array
+          description: Array of link rules that should be created and attached to this link.
+          items:
+            $ref: '#components/schemas/LinkRule'
+
+    LinkGroup:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Social Media
+          description: Name for the group.
+        active:
+          type: boolean
+          example: false
+          description: Whether this group is publicly acessible via its url.
+        hash:
+          type: string
+          example: my-group
+          description: Randomly generated or manually entered slug for the group.
+        rotator:
+          type: boolean
+          example: false
+          description: Whether it's a rotator group. Rotator group will redirect to random url contained in the group.
+        description:
+          type: string
+          example: My group containing social media links
+          description: Description for the group.
+        created_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Date group was created at.
+        updated_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Date group was last updated.
+
+    CrupdateLinkGroupPayload:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: Social Media
+          minimum: 3
+          maximum: 250
+          description: Name for the group
+        description:
+          type: string
+          example: Group for social service links
+          minimum: 3
+          maximum: 250
+          description: My group containing social media links
+        public:
+          type: boolean
+          example: false
+          description: Whether this group will be publicly acessible via specified slug.
+        rotator:
+          type: boolean
+          example: false
+          description: Whether this group will be a rotator group. Rotator group will redirect to random url contained in the group.
+        hash:
+          type: string
+          nullable: true
+          example: my-group
+          minimum: 3
+          maximum: 50
+          description: Slug for the group. Must be unique among all your groups and links.
+        domain_id:
+          type: number
+          default: null
+          description: ID of the domain group should be accessible at. Null for all domains, 0 for main site domain only.
+
+    Biolink:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Social Media
+          description: Name for the biolink.
+        active:
+          type: boolean
+          example: false
+          description: Whether this biolink is publicly acessible via its url.
+        hash:
+          type: string
+          example: my-group
+          description: Randomly generated or manually entered slug for the biolink.
+        expires_at:
+          type: string
+          nullable: true
+          example: '2022-05-07'
+          description: 'Format: "Y-m-d H:i:s" or "Y-m-d". Expiration date for the biolink. After this date biolink will no longer be accessible.'
+        activates_at:
+          type: string
+          nullable: true
+          example: '2022-05-06'
+          description: 'Format: "Y-m-d H:i:s" or "Y-m-d". Activation date for the biolink. Biolink will only become accessible after this date.'
+        utm:
+          type: string
+          nullable: true
+          example: 'utm_source=google&utm_medium=banner'
+          description: UTM query string that should be attached to biolink url.
+        password:
+          type: string
+          nullable: true
+          default: null
+          description: New password, if biolink should be password protected.
+        domain_id:
+          type: number
+          nullable: true
+          default: null
+          description: ID of the domain biolink should be accessible at. Null for all domains, 0 for main site domain only.
+        description:
+          type: string
+          example: My biolink containing social media links
+          description: Description for the biolink.
+        created_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Date biolink was created at.
+        updated_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Date biolink was last updated.
+
+    CrupdateBiolinkPayload:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Social Media
+          description: Name for the biolink.
+        active:
+          type: boolean
+          example: false
+          description: Whether this biolink is publicly acessible via its url.
+        hash:
+          type: string
+          example: my-biolink
+          description: Randomly generated or manually entered slug for the biolink.
+        expires_at:
+          type: string
+          nullable: true
+          example: '2022-05-06'
+          description: 'Format: "Y-m-d H:i:s" or "Y-m-d". Expiration date for the biolink. After this date biolink will no longer be accessible.'
+        activates_at:
+          type: string
+          nullable: true
+          example: '2022-05-06'
+          description: 'Format: "Y-m-d H:i:s" or "Y-m-d". Activation date for the biolink. Biolink will only become accessible after this date.'
+        utm:
+          type: string
+          nullable: true
+          example: 'utm_source=google&utm_medium=banner'
+          description: UTM query string that should be attached to biolink url.
+        password:
+          type: string
+          nullable: true
+          default: null
+          description: New password, if biolink should be password protected.
+        domain_id:
+          type: number
+          nullable: true
+          default: null
+          description: ID of the domain biolink should be accessible at. Null for all domains, 0 for main site domain only.
+        description:
+          type: string
+          example: My biolink containing social media links
+          description: Description for the biolink.
+        pixels:
+          type: array
+          nullable: true
+          items:
+            type: integer
+            example: 495
+          description: Array of pixel IDs that should be attached to this biolink.
+        rules:
+          nullable: true
+          type: array
+          description: Array of link rules that should be created and attached to this biolink.
+          items:
+            $ref: '#components/schemas/LinkRule'
+
+    BiolinkWidget:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: ID of the widget
+        biolink_id:
+          type: integer
+          example: 1
+          description: ID of the biolink this widget belongs to
+        position:
+          type: integer
+          example: 10
+          description: Position of the widget withing biolink content
+        active:
+          type: boolean
+          example: true
+          description: Whether widget is currently active (visible)
+        type:
+          type: string
+          example: youtubeEmbed
+          description: Type of the widget
+        created_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Date widget was created at.
+        updated_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Date widget was last updated.
+
+    CrupdateBiolinkWidgetPayload:
+      type: object
+      properties:
+        position:
+          type: integer
+          example: 10
+          description: At which position this widget should appear within biolink
+        type:
+          type: string
+          example: youtubeEmbed
+          description: Type of the widget
+        config:
+          type: object
+          description: Configuration for the widget
+
+    CrupdateBiolinkContentPayload:
+      type: object
+      properties:
+        active:
+          type: boolean
+          example: true
+          description: Whether content item should be active
+        image:
+          type: string
+          example: https://example.com/image.png
+          description: Thumbnail url to display next to a link.
+        animation:
+          type: string
+          description: Which animation to use for the link.
+          example: skake
+        leap_until:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Set link as "leap link" until specified date.
+        expires_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Set date at which link should be disabled.
+        activates_at:
+          type: string
+          example: '2021-05-24 18:03:59'
+          description: Set date at which link will become active.
+        item_id:
+          type: integer
+          description: Link or widget ID
+          example: 1
+        item_model_type:
+          description: Item type
+          type: string
+          enum:
+            - link
+            - widget
+
+    LinkRule:
+      type: object
+      properties:
+        type:
+          type: string
+          example: geo
+          description: Rule type. Geo, platform or device.
+        key:
+          type: string
+          example: us
+          description: A condition for rule. For example country code for geo rules.
+        value:
+          type: string
+          example: https://facebook.com
+          description: Destination url use should be redirect to if the rule condition is matched.
+
+    ClicksReport:
+      type: object
+      properties:
+        totalClicks:
+          type: integer
+          example: 5648
+          description: Total amount of clicks within this time period.
+        clicks:
+          type: array
+          description: Click/visit statistics for specific time period (day, week, year etc.)
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+                example: 14, Mon
+                description: Label for the time period
+              count:
+                type: integer
+                example: 55
+                description: Number of clicks during this time period
+              timestamp:
+                type: integer
+                example: 1623628800
+                description: Unix timestamp for this time period
+        devices:
+          type: array
+          description: Device statistics for specified time period (day, week, year etc.)
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+                example: Desktop
+                description: Name of the device
+              count:
+                type: integer
+                example: 55
+                description: Number of clicks during this time period from this device
+              timestamp:
+                type: integer
+                example: 1623628800
+                description: Unix timestamp for this time period
+        browsers:
+          type: array
+          description: Browser statistics for specified time period (day, week, year etc.)
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+                example: Chrome
+                description: Name of the browser
+              count:
+                type: integer
+                example: 55
+                description: Number of clicks during this time period from this browser
+              timestamp:
+                type: integer
+                example: 1623628800
+                description: Unix timestamp for this time period
+        platforms:
+          type: array
+          description: Platform statistics for specified time period (day, week, year etc.)
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+                example: Windows
+                description: Name of the platform
+              count:
+                type: integer
+                example: 55
+                description: Number of clicks during this time period from this platform
+              timestamp:
+                type: integer
+                example: 1623628800
+                description: Unix timestamp for this time period
+        locations:
+          type: array
+          description: Location statistics for specified time period (day, week, year etc.)
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+                example: United States
+                description: Name of the location
+              code:
+                type: string
+                example: us
+                description: country code
+              percentage:
+                type: number
+                example: 74
+                description: What percentage of clicks came from this country during selected time period
+              count:
+                type: integer
+                example: 55
+                description: Number of clicks during this time period from this location
+              timestamp:
+                type: integer
+                example: 1623628800
+                description: Unix timestamp for this time period
+        referrers:
+          type: array
+          description: Referer statistics for specified time period (day, week, year etc.)
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+                example: https://google.com
+                description: Referer url
+              count:
+                type: integer
+                example: 55
+                description: Number of clicks during this time period from this referer
+              timestamp:
+                type: integer
+                example: 1623628800
+                description: Unix timestamp for this time period
+
+    TrackingPixel:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Facebook Pixel
+          description: Name of the tracking pixel.
+        type:
+          type: string
+          example: facebook
+          description: Type of pixel. Usually the name of tracking service (facebook, twitter, adwords etc.)
+        pixel_id:
+          type: string
+          example: 4564654564
+          description: Tracking service ID for this pixel
+        head_code:
+          type: string
+          description: Custom code that should be injected into <head> tag, if provided by tracking service.
+        body_code:
+          type: string
+          description: Custom code that should be injected into <body> tag, if provided by tracking service.
+    CrupdateTrackingPixelPayload:
+      required: [name, type, pixel_id]
+      type: object
+      properties:
+        name:
+          type: string
+          example: Facebook Pixel
+          minimum: 3
+          maximum: 250
+          description: Name of the tracking pixel.
+        type:
+          type: string
+          example: facebook
+          minimum: 3
+          maximum: 50
+          description: Type of pixel. Usually the name of tracking service (facebook, twitter, adwords etc.)
+        pixel_id:
+          type: string
+          example: 4564654564
+          description: Tracking service ID for this pixel
+        head_code:
+          type: string
+          description: Custom code that should be injected into <head> tag, if provided by tracking service.
+        body_code:
+          type: string
+          description: Custom code that should be injected into <body> tag, if provided by tracking service.
+
+    LinkOverlay:
+      type: object
+      properties:
+        name:
+          type: string
+          example: My Overlay
+          description: Name of the overlay.
+        position:
+          type: string
+          example: bottom-left
+          enum:
+            - top-left
+            - top-right
+            - bottom-left
+            - bottom-right
+          description: Position of the overlay.
+        message:
+          type: string
+          example: Your message here
+          description: Manually entered overlay message
+        label:
+          type: string
+          example: Your label here
+          description: Manually entered overlay label
+        btn_link:
+          type: string
+          example: https://google.com
+          description: Url for the overlay button.
+        btn_text:
+          type: string
+          example: Click Me
+          description: Label for the overlay button.
+        theme:
+          type: string
+          example: default
+          enum:
+            - default
+            - full-width
+            - rounded
+            - pill
+          description: Overlay theme.
+        colors:
+          type: object
+          properties:
+            bg-image:
+              type: string
+              example: storage/link-overlay-images/GWN7XhpoSrwGoVfwLMJn5HoMGREsILt3AkGRbaZP.png
+              description: Relative url to overlay background image, if one was uploaded.
+            bg-color:
+              type: string
+              example: '#3e4a66'
+              description: Selected background color for the overlay.
+            text-color:
+              type: string
+              example: '#3e4a66'
+              description: Selected text color for the overlay.
+            label-color:
+              type: string
+              example: '#3e4a66'
+              description: Selected label color.
+            label-bg-color:
+              type: string
+              example: '#3e4a66'
+              description: Selected label background color.
+            button-bg-color:
+              type: string
+              example: '#3e4a66'
+              description: Selected button background color.
+            button-text-color:
+              type: string
+              example: '#3e4a66'
+              description: Selected button text color.
+    CrupdateLinkOverlayPayload:
+      type: object
+      properties:
+        name:
+          type: string
+          example: My Overlay
+          minimum: 3
+          maximum: 250
+          description: Name of the overlay.
+        position:
+          type: string
+          example: bottom-left
+          enum:
+            - top-left
+            - top-right
+            - bottom-left
+            - bottom-right
+          description: Position of the overlay.
+        message:
+          type: string
+          example: Your message here
+          description: Message to show on the overlay
+        label:
+          type: string
+          example: Your label here
+          description: Label to show on the overlay
+        btn_link:
+          type: string
+          example: https://google.com
+          description: Url that will be opened when clicking on overlay button
+        btn_text:
+          type: string
+          example: Click Me
+          description: Text to show on overlay button
+        theme:
+          type: string
+          example: default
+          enum:
+            - default
+            - full-width
+            - rounded
+            - pill
+          description: Overlay theme.
+        colors:
+          type: object
+          description: Colors for the overlay.
+          properties:
+            bg-image:
+              type: string
+              example: storage/link-overlay-images/GWN7XhpoSrwGoVfwLMJn5HoMGREsILt3AkGRbaZP.png
+              description: Relative url to overlay background image, if one was uploaded.
+            bg-color:
+              type: string
+              example: '#3e4a66'
+              description: Background color for the overlay.
+            text-color:
+              type: string
+              example: '#3e4a66'
+              description: Text color for the overlay.
+            label-color:
+              type: string
+              example: '#3e4a66'
+              description: Label text color.
+            label-bg-color:
+              type: string
+              example: '#3e4a66'
+              description: Label background color.
+            button-bg-color:
+              type: string
+              example: '#3e4a66'
+              description: Button background color.
+            button-text-color:
+              type: string
+              example: '#3e4a66'
+              description: Button text color.
+
+    LinkPage:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Some Title
+          description: Title of the page.
+        body:
+          type: string
+          example: '<p>some text here</p>'
+          description: Page body content, including raw html.
+        slug:
+          type: string
+          example: page
+          description: Select slug for the page.
+        hide_nav:
+          type: boolean
+          description: Whether navbar will be hidden when displaying this page.
+    CrupdateLinkPagePayload:
+      type: object
+      required: [body]
+      properties:
+        title:
+          type: string
+          example: Some Title
+          minimum: 3
+          maximum: 250
+          description: Title of the page.
+        body:
+          type: string
+          minimum: 1
+          example: '<p>some text here</p>'
+          description: Page body content, can contain html.
+        slug:
+          type: string
+          example: page
+          nullable: true
+          description: Slug for the page.
+          minimum: 3
+          maximum: 250
+        hide_nav:
+          type: boolean
+          default: false
+          description: Whether navbar should be hidden when displaying this page.
+
+    CustomDomain:
+      type: object
+      properties:
+        host:
+          type: string
+          example: htts://example.com
+          description: Fully qualified url for the custom domain.
+        global:
+          type: boolean
+          example: false
+          description: whether this domain is marked as global.
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        display_name:
+          type: string
+        avatar:
+          type: string
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: favorites
+
+    401-Response:
+      description: Unauthenticated. Either access token is not provided or is invalid.
+    403-Response:
+      description: Unauthorized access. You don't have permissions required to perform this operation.
+    404-Response:
+      description: Resource not found. Could not find a resource with specified name or ID.
+    422-Response:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: 'Reason for the error'
+        errors:
+          type: object
+          properties:
+            some_data_1:
+              type: string
+              example: Error message for data 1
+            some_data_2:
+              type: string
+              example: Error message for data 2
+
+  securitySchemes:
+    accessToken:
+      type: http
+      scheme: bearer

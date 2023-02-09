@@ -1,0 +1,6 @@
+@import '../../common/resources/client/common.css';
+@import 'landing/landing-page.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

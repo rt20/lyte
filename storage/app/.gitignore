@@ -1,0 +1,7 @@
+*
+!public/
+!chunks/
+!.gitignore
+!continents.json
+!geoip.mmdb
+!public_suffix_list.dat

@@ -1,0 +1,15 @@
+export const LinkAnimationList = [
+  'none',
+  'bounce',
+  'flash',
+  'pulse',
+  'rubberBand',
+  'shakeX',
+  'shakeY',
+  'headShake',
+  'swing',
+  'tada',
+  'wobble',
+  'jello',
+  'heartBeat',
+];
